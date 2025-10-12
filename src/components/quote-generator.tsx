@@ -36,7 +36,10 @@ const parseQuote = (fullQuote: string): { quote: string; author: string } => {
 
 export function QuoteGenerator() {
   const [selectedCategory, setSelectedCategory] = useState<Category>('motivational');
-  const [currentQuote, setCurrentQuote] = useState<{ quote: string; author: string }>({ quote: '', author: '' });
+  const [currentQuote, setCurrentQuote] = useState<{ quote: string; author: string }>({ 
+    quote: 'The only way to do great work is to love what you do.', 
+    author: 'Steve Jobs' 
+  });
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [isReading, setIsReading] = useState<boolean>(false);
@@ -61,13 +64,14 @@ export function QuoteGenerator() {
   };
 
   const handleGenerateQuote = async () => {
-    if (isGenerating) return;
     setIsGenerating(true);
     if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         setIsReading(false);
     }
     try {
+      selectRandomImage(selectedCategory);
       const result = await generateQuoteFromCategory({ category: selectedCategory });
       if (result.quote) {
         setCurrentQuote(parseQuote(result.quote));
@@ -89,22 +93,36 @@ export function QuoteGenerator() {
   const handleCategoryChange = (value: string) => {
     const newCategory = value as Category;
     setSelectedCategory(newCategory);
-    selectRandomImage(newCategory);
   };
 
   useEffect(() => {
-    selectRandomImage(selectedCategory);
+    selectRandomImage('motivational');
     handleGenerateQuote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if(!isGenerating) {
+        handleGenerateQuote();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory])
+
 
   const handleReadAloud = async () => {
     if (!currentQuote.quote) return;
 
     if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       setIsReading(false);
       return;
+    }
+    
+    if (audioRef.current && audioRef.current.paused && audioRef.current.src) {
+        audioRef.current.play();
+        setIsReading(true);
+        return;
     }
 
     setIsReading(true);
@@ -114,6 +132,7 @@ export function QuoteGenerator() {
         if (!audioRef.current) {
           audioRef.current = new Audio();
           audioRef.current.onended = () => setIsReading(false);
+          audioRef.current.onpause = () => setIsReading(false);
         }
         audioRef.current.src = result.audioDataUri;
         audioRef.current.play();
@@ -149,7 +168,7 @@ export function QuoteGenerator() {
   };
 
   return (
-    <div className="relative w-full max-w-sm aspect-[9/16] overflow-hidden rounded-2xl shadow-2xl bg-card border">
+    <div className="relative w-full max-w-sm aspect-[9/16] overflow-hidden rounded-2xl shadow-2xl bg-card border flex flex-col justify-end">
       {backgroundImage && (
         <Image
           src={backgroundImage}
@@ -162,84 +181,82 @@ export function QuoteGenerator() {
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
       
-      <div className="absolute inset-0 flex flex-col p-6 text-white">
-        <div className="flex-grow flex flex-col items-center justify-center text-center -mt-16">
+      <div className="relative z-10 flex flex-col gap-6 p-6 text-white">
+        <div className="flex-grow flex flex-col items-center justify-center text-center mb-16">
           {isGenerating && !currentQuote.quote ? (
             <LoaderCircle className="h-12 w-12 animate-spin text-white" />
           ) : (
-            <>
-              <blockquote className="space-y-4">
-                <p className="font-headline text-3xl font-bold text-shadow-lg transition-opacity duration-500">
-                  &ldquo;{currentQuote.quote}&rdquo;
-                </p>
-                <footer className="text-right font-body text-lg font-light text-shadow">
-                  &mdash; {currentQuote.author}
-                </footer>
-              </blockquote>
-            </>
+            <blockquote className="space-y-4 transition-opacity duration-300" style={{opacity: isGenerating ? 0.5 : 1}}>
+              <p className="font-headline text-3xl font-bold text-shadow-lg">
+                &ldquo;{currentQuote.quote}&rdquo;
+              </p>
+              <footer className="text-right font-body text-lg font-light text-shadow">
+                &mdash; {currentQuote.author}
+              </footer>
+            </blockquote>
           )}
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div>
-            <RadioGroup
-              value={selectedCategory}
-              onValueChange={handleCategoryChange}
-              className="grid grid-cols-4 gap-2"
-            >
-              {categories.map(({ value, label, icon: Icon }) => (
-                <div key={value}>
-                  <RadioGroupItem value={value} id={value} className="sr-only" />
-                  <Label
-                    htmlFor={value}
-                    className={cn(
-                      'flex flex-col items-center justify-center gap-2 rounded-lg p-2 border-2 border-transparent cursor-pointer transition-all',
-                      'bg-white/10 backdrop-blur-sm',
-                      'hover:bg-white/20',
-                      selectedCategory === value && 'border-white/80 bg-white/25'
-                    )}
-                  >
-                    <Icon className="h-6 w-6" />
-                    <span className="text-xs font-semibold">{label}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
+        <div>
+          <RadioGroup
+            value={selectedCategory}
+            onValueChange={handleCategoryChange}
+            className="grid grid-cols-4 gap-2"
+            disabled={isGenerating}
+          >
+            {categories.map(({ value, label, icon: Icon }) => (
+              <div key={value}>
+                <RadioGroupItem value={value} id={value} className="sr-only" />
+                <Label
+                  htmlFor={value}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-2 rounded-lg p-2 border-2 border-transparent cursor-pointer transition-all',
+                    'bg-white/10 backdrop-blur-sm',
+                    'hover:bg-white/20',
+                    selectedCategory === value && 'border-white/80 bg-white/25',
+                    'data-[disabled]:opacity-50 data-[disabled]:pointer-events-none'
+                  )}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-xs font-semibold">{label}</span>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
 
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={handleGenerateQuote}
-              className="flex-grow h-14 text-lg font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg transform hover:scale-105 transition-transform"
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <LoaderCircle className="h-6 w-6 animate-spin" />
-              ) : (
-                'Generate New Quote'
-              )}
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
-              onClick={handleReadAloud}
-              disabled={!currentQuote.quote || isGenerating}
-              aria-label="Read quote aloud"
-            >
-              {isReading ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
-              onClick={handleShare}
-              disabled={!currentQuote.quote || isGenerating}
-              aria-label="Share quote"
-            >
-              <Share2 className="h-6 w-6" />
-            </Button>
-          </div>
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={handleGenerateQuote}
+            className="flex-grow h-14 text-lg font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg transform hover:scale-105 transition-transform"
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <LoaderCircle className="h-6 w-6 animate-spin" />
+            ) : (
+              'Generate New Quote'
+            )}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+            onClick={handleReadAloud}
+            disabled={!currentQuote.quote || isGenerating}
+            aria-label="Read quote aloud"
+          >
+            {isReading ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+            onClick={handleShare}
+            disabled={!currentQuote.quote || isGenerating}
+            aria-label="Share quote"
+          >
+            <Share2 className="h-6 w-6" />
+          </Button>
         </div>
       </div>
     </div>
