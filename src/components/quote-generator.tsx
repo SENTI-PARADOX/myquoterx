@@ -45,6 +45,7 @@ export function QuoteGenerator() {
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isReading, setIsReading] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioSrc, setAudioSrc] = useState<string>('');
@@ -73,6 +74,7 @@ export function QuoteGenerator() {
       audioRef.current.pause();
     }
     setIsReading(false);
+    setIsPlaying(false);
     setAudioSrc('');
 
     try {
@@ -109,16 +111,16 @@ export function QuoteGenerator() {
   useEffect(() => {
     if (!audioRef.current) {
         audioRef.current = new Audio();
-        audioRef.current.addEventListener('ended', () => setIsReading(false));
-        audioRef.current.addEventListener('pause', () => setIsReading(false));
-        audioRef.current.addEventListener('play', () => setIsReading(true));
+        audioRef.current.addEventListener('ended', () => setIsPlaying(false));
+        audioRef.current.addEventListener('pause', () => setIsPlaying(false));
+        audioRef.current.addEventListener('play', () => setIsPlaying(true));
     }
 
     return () => {
         if (audioRef.current) {
-            audioRef.current.removeEventListener('ended', () => setIsReading(false));
-            audioRef.current.removeEventListener('pause', () => setIsReading(false));
-            audioRef.current.removeEventListener('play', () => setIsReading(true));
+            audioRef.current.removeEventListener('ended', () => setIsPlaying(false));
+            audioRef.current.removeEventListener('pause', () => setIsPlaying(false));
+            audioRef.current.removeEventListener('play', () => setIsPlaying(true));
         }
     }
   }, []);
@@ -127,7 +129,7 @@ export function QuoteGenerator() {
   const handleReadAloud = async () => {
     if (!currentQuote.quote || !audioRef.current) return;
 
-    if (isReading) {
+    if (isPlaying) {
       audioRef.current.pause();
       return;
     }
@@ -154,7 +156,8 @@ export function QuoteGenerator() {
         title: 'Error reading quote',
         description: 'Text-to-speech failed. Please try again.',
       });
-      setIsReading(false);
+    } finally {
+        setIsReading(false);
     }
   };
 
@@ -198,7 +201,7 @@ export function QuoteGenerator() {
         doc.text(`${cat.label} Quotes`, 20, yPos);
         yPos += 10;
         
-        const result = await generateQuotePack({ category: cat.value, count: 10 });
+        const result = await generateQuotePack({ category: cat.value, count: 250 });
         doc.setFontSize(10);
 
         result.quotes.forEach((quote, index) => {
@@ -305,10 +308,10 @@ export function QuoteGenerator() {
             variant="ghost"
             className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             onClick={handleReadAloud}
-            disabled={isGenerating || isDownloading || (!currentQuote.quote)}
+            disabled={isGenerating || isDownloading || isReading || (!currentQuote.quote)}
             aria-label="Read quote aloud"
           >
-            {isReading ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+            {isReading ? <LoaderCircle className="h-6 w-6 animate-spin" /> : (isPlaying ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />)}
           </Button>
           <Button
             size="icon"
