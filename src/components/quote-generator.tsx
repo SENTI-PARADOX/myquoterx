@@ -11,14 +11,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
-import { Heart, LoaderCircle, Road, Share2, Sunrise, Droplets, Volume2, VolumeX } from 'lucide-react';
+import { Heart, LoaderCircle, Route, Share2, Sunrise, Droplets, Volume2, VolumeX } from 'lucide-react';
 
 type Category = GenerateQuoteFromCategoryInput['category'];
 
 const categories: { value: Category; label: string; icon: React.ElementType }[] = [
   { value: 'motivational', label: 'Motivational', icon: Sunrise },
   { value: 'love', label: 'Love', icon: Heart },
-  { value: 'life', label: 'Life', icon: Road },
+  { value: 'life', label: 'Life', icon: Route },
   { value: 'sad', label: 'Sad', icon: Droplets },
 ];
 
