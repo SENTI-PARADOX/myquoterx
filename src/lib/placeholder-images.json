@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "motivational-1",
+      "description": "Sunrise over mountains",
+      "imageUrl": "https://picsum.photos/seed/sunrise/1080/1920",
+      "imageHint": "sunrise mountains"
+    },
+    {
+      "id": "motivational-2",
+      "description": "Person on a mountain peak",
+      "imageUrl": "https://picsum.photos/seed/peak/1080/1920",
+      "imageHint": "mountain peak"
+    },
+    {
+      "id": "motivational-3",
+      "description": "Abstract sunrise gradient",
+      "imageUrl": "https://picsum.photos/seed/gradient/1080/1920",
+      "imageHint": "sunrise gradient"
+    },
+    {
+      "id": "love-1",
+      "description": "Warm pink tones abstract background",
+      "imageUrl": "https://picsum.photos/seed/pinklove/1080/1920",
+      "imageHint": "pink abstract"
+    },
+    {
+      "id": "love-2",
+      "description": "Couple holding hands",
+      "imageUrl": "https://picsum.photos/seed/holdinghands/1080/1920",
+      "imageHint": "couple hands"
+    },
+    {
+      "id": "love-3",
+      "description": "Heart shape in the clouds",
+      "imageUrl": "https://picsum.photos/seed/heartcloud/1080/1920",
+      "imageHint": "heart cloud"
+    },
+    {
+      "id": "life-1",
+      "description": "Long winding road",
+      "imageUrl": "https://picsum.photos/seed/longroad/1080/1920",
+      "imageHint": "winding road"
+    },
+    {
+      "id": "life-2",
+      "description": "Path through a forest",
+      "imageUrl": "https://picsum.photos/seed/forestpath/1080/1920",
+      "imageHint": "forest path"
+    },
+    {
+      "id": "life-3",
+      "description": "Cherry blossom tree in spring",
+      "imageUrl": "https://picsum.photos/seed/blossom/1080/1920",
+      "imageHint": "cherry blossom"
+    },
+    {
+      "id": "sad-1",
+      "description": "Raindrops on a window pane",
+      "imageUrl": "https://picsum.photos/seed/raindrops/1080/1920",
+      "imageHint": "rain window"
+    },
+    {
+      "id": "sad-2",
+      "description": "Dark blue abstract background",
+      "imageUrl": "https://picsum.photos/seed/darkblue/1080/1920",
+      "imageHint": "dark blue"
+    },
+    {
+      "id": "sad-3",
+      "description": "Lone person on a beach",
+      "imageUrl": "https://picsum.photos/seed/lonebeach/1080/1920",
+      "imageHint": "lone person"
+    }
+  ]
 }
