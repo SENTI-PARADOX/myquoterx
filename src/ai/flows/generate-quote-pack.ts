@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const GenerateQuotePackInputSchema = z.object({
   category: z.string().describe('The category for which to generate quotes.'),
-  count: z.number().min(1).max(250).describe('The number of unique quotes to generate.'),
+  count: z.number().min(1).max(1000).describe('The number of unique quotes to generate.'),
 });
 
 export type GenerateQuotePackInput = z.infer<typeof GenerateQuotePackInputSchema>;

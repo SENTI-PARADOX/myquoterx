@@ -206,7 +206,7 @@ export function QuoteGenerator() {
         doc.text(`${cat.label} Quotes`, 20, yPos);
         yPos += 15;
         
-        const result = await generateQuotePack({ category: cat.value, count: 250 });
+        const result = await generateQuotePack({ category: cat.value, count: 1000 });
         doc.setFontSize(10);
 
         result.quotes.forEach((quote, index) => {
