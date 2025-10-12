@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import { generateQuoteFromCategory } from '@/ai/flows/generate-quote-from-category';
-import type { GenerateQuoteFromCategoryInput } from '@/ai/flows/generate-quote-from-category';
 import { generateQuotePack } from '@/ai/flows/generate-quote-pack';
 import { readQuoteAloud } from '@/ai/flows/read-quote-aloud';
 import { Button } from '@/components/ui/button';
@@ -14,8 +12,9 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { Heart, LoaderCircle, Route, Share2, Sunrise, Droplets, Volume2, VolumeX, Download } from 'lucide-react';
+import localQuotes from '@/lib/quotes.json';
 
-type Category = GenerateQuoteFromCategoryInput['category'];
+type Category = 'motivational' | 'love' | 'life' | 'sad';
 
 const categories: { value: Category; label: string; icon: React.ElementType }[] = [
   { value: 'motivational', label: 'Motivational', icon: Sunrise },
@@ -43,7 +42,7 @@ export function QuoteGenerator() {
     author: 'Steve Jobs' 
   });
   const [backgroundImage, setBackgroundImage] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(true);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isReading, setIsReading] = useState<boolean>(false);
@@ -68,7 +67,7 @@ export function QuoteGenerator() {
     }
   };
   
-  const handleGenerateQuote = async (category: Category = selectedCategory) => {
+  const handleGenerateQuote = (category: Category = selectedCategory) => {
     setIsGenerating(true);
     if (audioRef.current) {
       audioRef.current.pause();
@@ -77,24 +76,15 @@ export function QuoteGenerator() {
     setIsPlaying(false);
     setAudioSrc('');
 
-    try {
-      selectRandomImage(category);
-      const result = await generateQuoteFromCategory({ category });
-      if (result.quote) {
-        setCurrentQuote(parseQuote(result.quote));
-      } else {
-        throw new Error('No quote was generated.');
-      }
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error generating quote',
-        description: 'Could not generate a quote. Please try again later.',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+    selectRandomImage(category);
+    
+    const quotePool = localQuotes.quotes[category];
+    const randomIndex = Math.floor(Math.random() * quotePool.length);
+    const newQuote = quotePool[randomIndex];
+    
+    setCurrentQuote(parseQuote(newQuote));
+    
+    setIsGenerating(false);
   };
 
   const handleCategoryChange = (value: string) => {
@@ -104,7 +94,7 @@ export function QuoteGenerator() {
   };
   
   useEffect(() => {
-    handleGenerateQuote('motivational');
+    selectRandomImage('motivational');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -187,7 +177,6 @@ export function QuoteGenerator() {
     try {
       const doc = new jsPDF();
       
-      // Title Page
       doc.setFontSize(24);
       doc.text("Mega Quotes Pack", 105, 20, { align: 'center' });
       doc.setFontSize(12);

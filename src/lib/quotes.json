@@ -1,0 +1,52 @@
+{
+  "quotes": {
+    "motivational": [
+      "The only way to do great work is to love what you do. - Steve Jobs",
+      "Believe you can and you're halfway there. - Theodore Roosevelt",
+      "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+      "The secret of getting ahead is getting started. - Mark Twain",
+      "It does not matter how slowly you go as long as you do not stop. - Confucius",
+      "Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time. - Thomas A. Edison",
+      "If you can dream it, you can achieve it. - Zig Ziglar",
+      "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
+      "Hardships often prepare ordinary people for an extraordinary destiny. - C.S. Lewis",
+      "The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt"
+    ],
+    "love": [
+      "The best thing to hold onto in life is each other. - Audrey Hepburn",
+      "To love and be loved is to feel the sun from both sides. - David Viscott",
+      "Love is composed of a single soul inhabiting two bodies. - Aristotle",
+      "The giving of love is an education in itself. - Eleanor Roosevelt",
+      "The best and most beautiful things in this world cannot be seen or even heard, but must be felt with the heart. - Helen Keller",
+      "Love is not only something you feel, it is something you do. - David Wilkerson",
+      "I have decided to stick with love. Hate is too great a burden to bear. - Martin Luther King, Jr.",
+      "We are most alive when we're in love. - John Updike",
+      "Love is a friendship set to music. - Joseph Campbell",
+      "To be brave is to love someone unconditionally, without expecting anything in return. - Madonna"
+    ],
+    "life": [
+      "The purpose of our lives is to be happy. - Dalai Lama",
+      "Life is what happens when you're busy making other plans. - John Lennon",
+      "Get busy living or get busy dying. - Stephen King",
+      "You only live once, but if you do it right, once is enough. - Mae West",
+      "Many of life's failures are people who did not realize how close they were to success when they gave up. - Thomas A. Edison",
+      "If you want to live a happy life, tie it to a goal, not to people or things. - Albert Einstein",
+      "Never let the fear of striking out keep you from playing the game. - Babe Ruth",
+      "Money and success don’t change people; they merely amplify what is already there. - Will Smith",
+      "Your time is limited, so don’t waste it living someone else’s life. Don’t be trapped by dogma — which is living with the results of other people’s thinking. - Steve Jobs",
+      "Not how long, but how well you have lived is the main thing. - Seneca"
+    ],
+    "sad": [
+      "The word 'happy' would lose its meaning if it were not balanced by sadness. - Carl Jung",
+      "Tears come from the heart and not from the brain. - Leonardo da Vinci",
+      "It's sad when someone you know becomes someone you knew. - Henry Rollins",
+      "Sadness flies away on the wings of time. - Jean de La Fontaine",
+      "The good times of today are the sad thoughts of tomorrow. - Bob Marley",
+      "Breathing is hard. When you cry so much, it makes you realize that breathing is hard. - David Levithan",
+      "There is a certain pleasure in weeping. It is a form of release. - Ovid",
+      "The walls we build around us to keep sadness out also keep out the joy. - Jim Rohn",
+      "It is better to have loved and lost than never to have loved at all. - Alfred Lord Tennyson",
+      "What brings us to tears, will lead us to grace. Our pain is never wasted. - Bob Goff"
+    ]
+  }
+}
