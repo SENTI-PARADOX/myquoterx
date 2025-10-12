@@ -43,10 +43,11 @@ export function QuoteGenerator() {
     author: 'Steve Jobs' 
   });
   const [backgroundImage, setBackgroundImage] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isReading, setIsReading] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioSrc, setAudioSrc] = useState<string>('');
   const { toast } = useToast();
 
   const categoryImages = useMemo(() => {
@@ -65,14 +66,15 @@ export function QuoteGenerator() {
       setBackgroundImage(images[randomIndex].imageUrl);
     }
   };
-
+  
   const handleGenerateQuote = async (category: Category = selectedCategory) => {
     setIsGenerating(true);
     if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsReading(false);
+      audioRef.current.pause();
     }
+    setIsReading(false);
+    setAudioSrc('');
+
     try {
       selectRandomImage(category);
       const result = await generateQuoteFromCategory({ category });
@@ -92,34 +94,46 @@ export function QuoteGenerator() {
       setIsGenerating(false);
     }
   };
-  
+
   const handleCategoryChange = (value: string) => {
     const newCategory = value as Category;
     setSelectedCategory(newCategory);
     handleGenerateQuote(newCategory);
   };
-
+  
   useEffect(() => {
-    const initialCategory = 'motivational';
-    setSelectedCategory(initialCategory);
-    selectRandomImage(initialCategory);
-    handleGenerateQuote(initialCategory);
+    handleGenerateQuote('motivational');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleReadAloud = async () => {
-    if (!currentQuote.quote) return;
+  useEffect(() => {
+    if (!audioRef.current) {
+        audioRef.current = new Audio();
+        audioRef.current.addEventListener('ended', () => setIsReading(false));
+        audioRef.current.addEventListener('pause', () => setIsReading(false));
+        audioRef.current.addEventListener('play', () => setIsReading(true));
+    }
 
-    if (audioRef.current && !audioRef.current.paused) {
+    return () => {
+        if (audioRef.current) {
+            audioRef.current.removeEventListener('ended', () => setIsReading(false));
+            audioRef.current.removeEventListener('pause', () => setIsReading(false));
+            audioRef.current.removeEventListener('play', () => setIsReading(true));
+        }
+    }
+  }, []);
+
+
+  const handleReadAloud = async () => {
+    if (!currentQuote.quote || !audioRef.current) return;
+
+    if (isReading) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsReading(false);
       return;
     }
     
-    if (audioRef.current && audioRef.current.paused && audioRef.current.src) {
+    if (audioSrc) {
         audioRef.current.play();
-        setIsReading(true);
         return;
     }
 
@@ -127,13 +141,11 @@ export function QuoteGenerator() {
     try {
       const result = await readQuoteAloud({ quote: currentQuote.quote });
       if (result.audioDataUri) {
-        if (!audioRef.current) {
-          audioRef.current = new Audio();
-          audioRef.current.onended = () => setIsReading(false);
-          audioRef.current.onpause = () => setIsReading(false);
-        }
+        setAudioSrc(result.audioDataUri);
         audioRef.current.src = result.audioDataUri;
         audioRef.current.play();
+      } else {
+        setIsReading(false);
       }
     } catch (e) {
       console.error(e);
@@ -143,10 +155,6 @@ export function QuoteGenerator() {
         description: 'Text-to-speech failed. Please try again.',
       });
       setIsReading(false);
-    } finally {
-        if (!audioRef.current?.src) {
-            setIsReading(false);
-        }
     }
   };
 
@@ -238,10 +246,10 @@ export function QuoteGenerator() {
       
       <div className="relative z-10 flex flex-col gap-6 p-6 text-white">
         <div className="flex-grow flex flex-col items-center justify-center text-center mb-16 min-h-[200px]">
-          {isGenerating && !currentQuote.quote ? (
+          {isGenerating ? (
             <LoaderCircle className="h-12 w-12 animate-spin text-white" />
           ) : (
-            <blockquote className="space-y-4 transition-opacity duration-300" style={{opacity: isGenerating ? 0.5 : 1}}>
+            <blockquote className="space-y-4">
               <p className="font-headline text-3xl font-bold text-shadow-lg">
                 &ldquo;{currentQuote.quote}&rdquo;
               </p>
@@ -297,7 +305,7 @@ export function QuoteGenerator() {
             variant="ghost"
             className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             onClick={handleReadAloud}
-            disabled={!currentQuote.quote || isGenerating || isDownloading}
+            disabled={isGenerating || isDownloading || (!currentQuote.quote)}
             aria-label="Read quote aloud"
           >
             {isReading ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
@@ -307,20 +315,24 @@ export function QuoteGenerator() {
             variant="ghost"
             className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             onClick={handleShare}
-            disabled={!currentQuote.quote || isGenerating || isDownloading}
+            disabled={isGenerating || isDownloading}
             aria-label="Share quote"
           >
             <Share2 className="h-6 w-6" />
           </Button>
-           <Button
+          <Button
             size="icon"
             variant="ghost"
             className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             onClick={handleDownloadPdf}
-            disabled={isDownloading || isGenerating}
-            aria-label="Download quotes as PDF"
+            disabled={isDownloading}
+            aria-label="Download quotes pack"
           >
-            {isDownloading ? <LoaderCircle className="h-6 w-6 animate-spin" /> : <Download className="h-6 w-6" />}
+            {isDownloading ? (
+              <LoaderCircle className="h-6 w-6 animate-spin" />
+            ) : (
+              <Download className="h-6 w-6" />
+            )}
           </Button>
         </div>
       </div>
