@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { generateQuoteFromCategory } from '@/ai/flows/generate-quote-from-category';
 import type { GenerateQuoteFromCategoryInput } from '@/ai/flows/generate-quote-from-category';
+import { generateQuotePack } from '@/ai/flows/generate-quote-pack';
 import { readQuoteAloud } from '@/ai/flows/read-quote-aloud';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
-import { Heart, LoaderCircle, Route, Share2, Sunrise, Droplets, Volume2, VolumeX } from 'lucide-react';
+import jsPDF from 'jspdf';
+import { Heart, LoaderCircle, Route, Share2, Sunrise, Droplets, Volume2, VolumeX, Download } from 'lucide-react';
 
 type Category = GenerateQuoteFromCategoryInput['category'];
 
@@ -41,7 +43,8 @@ export function QuoteGenerator() {
     author: 'Steve Jobs' 
   });
   const [backgroundImage, setBackgroundImage] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(true);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isReading, setIsReading] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
@@ -63,7 +66,7 @@ export function QuoteGenerator() {
     }
   };
 
-  const handleGenerateQuote = async () => {
+  const handleGenerateQuote = async (category: Category = selectedCategory) => {
     setIsGenerating(true);
     if (audioRef.current) {
         audioRef.current.pause();
@@ -71,8 +74,8 @@ export function QuoteGenerator() {
         setIsReading(false);
     }
     try {
-      selectRandomImage(selectedCategory);
-      const result = await generateQuoteFromCategory({ category: selectedCategory });
+      selectRandomImage(category);
+      const result = await generateQuoteFromCategory({ category });
       if (result.quote) {
         setCurrentQuote(parseQuote(result.quote));
       } else {
@@ -93,21 +96,16 @@ export function QuoteGenerator() {
   const handleCategoryChange = (value: string) => {
     const newCategory = value as Category;
     setSelectedCategory(newCategory);
+    handleGenerateQuote(newCategory);
   };
 
   useEffect(() => {
-    selectRandomImage('motivational');
-    handleGenerateQuote();
+    const initialCategory = 'motivational';
+    setSelectedCategory(initialCategory);
+    selectRandomImage(initialCategory);
+    handleGenerateQuote(initialCategory);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if(!isGenerating) {
-        handleGenerateQuote();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory])
-
 
   const handleReadAloud = async () => {
     if (!currentQuote.quote) return;
@@ -145,6 +143,10 @@ export function QuoteGenerator() {
         description: 'Text-to-speech failed. Please try again.',
       });
       setIsReading(false);
+    } finally {
+        if (!audioRef.current?.src) {
+            setIsReading(false);
+        }
     }
   };
 
@@ -167,9 +169,60 @@ export function QuoteGenerator() {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    setIsDownloading(true);
+    toast({ title: 'Generating PDF...', description: 'This may take a moment.' });
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(24);
+      doc.text("Mega Quotes Pack", 105, 20, { align: 'center' });
+      doc.setFontSize(12);
+      doc.text("Thousands of inspirational quotes organized by theme.", 105, 30, { align: 'center' });
+      
+      let yPos = 50;
+
+      for (const cat of categories) {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFontSize(18);
+        doc.text(`${cat.label} Quotes`, 20, yPos);
+        yPos += 10;
+        
+        const result = await generateQuotePack({ category: cat.value, count: 10 });
+        doc.setFontSize(10);
+
+        result.quotes.forEach((quote, index) => {
+           if (yPos > 280) {
+              doc.addPage();
+              yPos = 20;
+           }
+           const { quote: qText, author } = parseQuote(quote);
+           const wrappedText = doc.splitTextToSize(`${index + 1}. "${qText}" - ${author}`, 170);
+           doc.text(wrappedText, 25, yPos);
+           yPos += (wrappedText.length * 5) + 5;
+        });
+        yPos += 10;
+      }
+
+      doc.save("Mega_Quotes_Pack.pdf");
+
+    } catch (error) {
+       console.error("Failed to generate PDF", error);
+       toast({
+         variant: "destructive",
+         title: "PDF Generation Failed",
+         description: "Could not generate the quote pack PDF. Please try again.",
+       });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="relative w-full max-w-sm aspect-[9/16] overflow-hidden rounded-2xl shadow-2xl bg-card border flex flex-col justify-end">
-      {backgroundImage && (
+      {backgroundImage ? (
         <Image
           src={backgroundImage}
           alt="Inspirational background"
@@ -178,11 +231,13 @@ export function QuoteGenerator() {
           className="object-cover transition-all duration-500 ease-in-out"
           data-ai-hint="background image"
         />
+      ) : (
+        <div className="w-full h-full bg-secondary animate-pulse" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
       
       <div className="relative z-10 flex flex-col gap-6 p-6 text-white">
-        <div className="flex-grow flex flex-col items-center justify-center text-center mb-16">
+        <div className="flex-grow flex flex-col items-center justify-center text-center mb-16 min-h-[200px]">
           {isGenerating && !currentQuote.quote ? (
             <LoaderCircle className="h-12 w-12 animate-spin text-white" />
           ) : (
@@ -202,7 +257,7 @@ export function QuoteGenerator() {
             value={selectedCategory}
             onValueChange={handleCategoryChange}
             className="grid grid-cols-4 gap-2"
-            disabled={isGenerating}
+            disabled={isGenerating || isDownloading}
           >
             {categories.map(({ value, label, icon: Icon }) => (
               <div key={value}>
@@ -225,16 +280,16 @@ export function QuoteGenerator() {
           </RadioGroup>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Button
-            onClick={handleGenerateQuote}
+            onClick={() => handleGenerateQuote()}
             className="flex-grow h-14 text-lg font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg transform hover:scale-105 transition-transform"
-            disabled={isGenerating}
+            disabled={isGenerating || isDownloading}
           >
             {isGenerating ? (
               <LoaderCircle className="h-6 w-6 animate-spin" />
             ) : (
-              'Generate New Quote'
+              'New Quote'
             )}
           </Button>
           <Button
@@ -242,7 +297,7 @@ export function QuoteGenerator() {
             variant="ghost"
             className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             onClick={handleReadAloud}
-            disabled={!currentQuote.quote || isGenerating}
+            disabled={!currentQuote.quote || isGenerating || isDownloading}
             aria-label="Read quote aloud"
           >
             {isReading ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
@@ -252,10 +307,20 @@ export function QuoteGenerator() {
             variant="ghost"
             className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             onClick={handleShare}
-            disabled={!currentQuote.quote || isGenerating}
+            disabled={!currentQuote.quote || isGenerating || isDownloading}
             aria-label="Share quote"
           >
             <Share2 className="h-6 w-6" />
+          </Button>
+           <Button
+            size="icon"
+            variant="ghost"
+            className="h-14 w-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+            onClick={handleDownloadPdf}
+            disabled={isDownloading || isGenerating}
+            aria-label="Download quotes as PDF"
+          >
+            {isDownloading ? <LoaderCircle className="h-6 w-6 animate-spin" /> : <Download className="h-6 w-6" />}
           </Button>
         </div>
       </div>
