@@ -35,12 +35,19 @@ const parseQuote = (fullQuote: string): { quote: string; author: string } => {
   return { quote: fullQuote.replace(/^"|"$/g, ''), author: 'Anonymous' };
 };
 
+// Function to shuffle an array
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
 export function QuoteGenerator() {
   const [selectedCategory, setSelectedCategory] = useState<Category>('motivational');
-  const [currentQuote, setCurrentQuote] = useState<{ quote: string; author: string }>({ 
-    quote: 'The only way to do great work is to love what you do.', 
-    author: 'Steve Jobs' 
-  });
+  const [currentQuote, setCurrentQuote] = useState<{ quote: string; author: string }>(parseQuote(localQuotes.quotes.motivational[0]));
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
@@ -49,6 +56,20 @@ export function QuoteGenerator() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioSrc, setAudioSrc] = useState<string>('');
   const { toast } = useToast();
+
+  const quoteIndices = useRef<Record<Category, number>>({
+    motivational: 0,
+    love: 0,
+    life: 0,
+    sad: 0,
+  });
+
+  const shuffledQuotes = useRef<Record<Category, string[]>>({
+    motivational: [],
+    love: [],
+    life: [],
+    sad: [],
+  });
 
   const categoryImages = useMemo(() => {
     return {
@@ -66,7 +87,18 @@ export function QuoteGenerator() {
       setBackgroundImage(images[randomIndex].imageUrl);
     }
   };
-  
+
+  const getNextQuote = (category: Category): string => {
+    if (!shuffledQuotes.current[category] || quoteIndices.current[category] >= shuffledQuotes.current[category].length) {
+      shuffledQuotes.current[category] = shuffleArray(localQuotes.quotes[category]);
+      quoteIndices.current[category] = 0;
+    }
+    const index = quoteIndices.current[category];
+    const quote = shuffledQuotes.current[category][index];
+    quoteIndices.current[category] += 1;
+    return quote;
+  };
+
   const handleGenerateQuote = (category: Category = selectedCategory) => {
     setIsGenerating(true);
     if (audioRef.current) {
@@ -78,9 +110,7 @@ export function QuoteGenerator() {
 
     selectRandomImage(category);
     
-    const quotePool = localQuotes.quotes[category];
-    const randomIndex = Math.floor(Math.random() * quotePool.length);
-    const newQuote = quotePool[randomIndex];
+    const newQuote = getNextQuote(category);
     
     setCurrentQuote(parseQuote(newQuote));
     
@@ -94,6 +124,13 @@ export function QuoteGenerator() {
   };
   
   useEffect(() => {
+    // Initialize shuffled quotes on mount
+    (Object.keys(localQuotes.quotes) as Category[]).forEach(category => {
+       shuffledQuotes.current[category] = shuffleArray(localQuotes.quotes[category]);
+    });
+    // Set initial quote and image
+    const initialQuote = getNextQuote('motivational');
+    setCurrentQuote(parseQuote(initialQuote));
     selectRandomImage('motivational');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
