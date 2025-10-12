@@ -185,21 +185,26 @@ export function QuoteGenerator() {
     toast({ title: 'Generating PDF...', description: 'This may take a moment.' });
     try {
       const doc = new jsPDF();
+      
+      // Title Page
       doc.setFontSize(24);
       doc.text("Mega Quotes Pack", 105, 20, { align: 'center' });
       doc.setFontSize(12);
       doc.text("Thousands of inspirational quotes organized by theme.", 105, 30, { align: 'center' });
       
-      let yPos = 50;
+      let isFirstCategory = true;
 
       for (const cat of categories) {
-        if (yPos > 250) {
+        if (!isFirstCategory) {
           doc.addPage();
-          yPos = 20;
         }
+        isFirstCategory = false;
+
+        let yPos = 20;
+
         doc.setFontSize(18);
         doc.text(`${cat.label} Quotes`, 20, yPos);
-        yPos += 10;
+        yPos += 15;
         
         const result = await generateQuotePack({ category: cat.value, count: 250 });
         doc.setFontSize(10);
@@ -214,7 +219,6 @@ export function QuoteGenerator() {
            doc.text(wrappedText, 25, yPos);
            yPos += (wrappedText.length * 5) + 5;
         });
-        yPos += 10;
       }
 
       doc.save("Mega_Quotes_Pack.pdf");
