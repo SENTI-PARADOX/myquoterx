@@ -10,6 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import wav from 'wav';
+import {googleAI} from '@genkit-ai/google-genai';
 
 const ReadQuoteAloudInputSchema = z.object({
   quote: z.string().describe('The quote to be read aloud.'),
@@ -37,7 +38,7 @@ const readQuoteAloudFlow = ai.defineFlow(
   },
   async (input) => {
     const {media} = await ai.generate({
-      model: ai.model('googleai/gemini-2.5-flash-preview-tts'),
+      model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -87,4 +88,3 @@ async function toWav(
     writer.end();
   });
 }
-
