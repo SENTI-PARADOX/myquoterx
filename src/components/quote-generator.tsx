@@ -135,6 +135,7 @@ export function QuoteGenerator() {
     }
     
     if (audioSrc) {
+        audioRef.current.src = audioSrc;
         audioRef.current.play();
         return;
     }
