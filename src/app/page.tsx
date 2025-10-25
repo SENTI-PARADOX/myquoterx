@@ -16,6 +16,10 @@ export default function Home() {
         jnv koderma
       </div>
       <QuoteGenerator />
+      <div className="text-center mt-8">
+        <h2 className="font-stylish text-4xl font-bold text-primary">THE PRINCE</h2>
+        <p className="font-stylish text-2xl text-accent">THE BOY OF JNV KODERMA</p>
+      </div>
     </main>
   );
 }
