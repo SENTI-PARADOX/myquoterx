@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import jsPDF from 'jspdf';
-import { LoaderCircle, Sunrise, Volume2, VolumeX, Download, Share2 } from 'lucide-react';
+import { LoaderCircle, Sunrise, Volume2, VolumeX, Download, Share2, Heart, Droplet, Route } from 'lucide-react';
 import localQuotes from '@/lib/quotes.json';
 
 type Category = 'motivational';
@@ -25,7 +25,6 @@ const parseQuote = (fullQuote: string): { quote: string; author: string } => {
   return { quote: fullQuote.replace(/^"|"$/g, ''), author: 'Anonymous' };
 };
 
-// Function to shuffle an array
 const shuffleArray = <T,>(array: T[]): T[] => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -46,9 +45,8 @@ export function QuoteGenerator() {
   const [audioSrc, setAudioSrc] = useState<string>('');
   const { toast } = useToast();
 
-  const quoteIndex = useRef<number>(0);
-
-  const shuffledQuotes = useRef<string[]>([]);
+  const quoteIndices = useRef<Record<Category, number>>({ motivational: 0 });
+  const shuffledQuotes = useRef<Record<Category, string[]>>({ motivational: [] });
 
   const categoryImages = useMemo(() => {
     return PlaceHolderImages.filter(img => img.id.startsWith('motivational'));
@@ -61,14 +59,14 @@ export function QuoteGenerator() {
     }
   };
 
-  const getNextQuote = (): string => {
-    if (!shuffledQuotes.current || quoteIndex.current >= shuffledQuotes.current.length) {
-      shuffledQuotes.current = shuffleArray(localQuotes.quotes.motivational);
-      quoteIndex.current = 0;
+  const getNextQuote = (category: Category): string => {
+    if (!shuffledQuotes.current[category] || quoteIndices.current[category] >= shuffledQuotes.current[category].length) {
+      shuffledQuotes.current[category] = shuffleArray(localQuotes.quotes[category]);
+      quoteIndices.current[category] = 0;
     }
-    const index = quoteIndex.current;
-    const quote = shuffledQuotes.current[index];
-    quoteIndex.current += 1;
+    const index = quoteIndices.current[category];
+    const quote = shuffledQuotes.current[category][index];
+    quoteIndices.current[category] += 1;
     return quote;
   };
 
@@ -83,7 +81,7 @@ export function QuoteGenerator() {
 
     selectRandomImage();
     
-    const newQuote = getNextQuote();
+    const newQuote = getNextQuote('motivational');
     
     setCurrentQuote(parseQuote(newQuote));
     
@@ -91,32 +89,32 @@ export function QuoteGenerator() {
   };
   
   useEffect(() => {
-    // Initialize shuffled quotes on mount
-    shuffledQuotes.current = shuffleArray(localQuotes.quotes.motivational);
-    // Set initial quote and image
-    const initialQuote = getNextQuote();
+    shuffledQuotes.current['motivational'] = shuffleArray(localQuotes.quotes.motivational);
+    const initialQuote = getNextQuote('motivational');
     setCurrentQuote(parseQuote(initialQuote));
     selectRandomImage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!audioRef.current) {
-        audioRef.current = new Audio();
-        audioRef.current.addEventListener('ended', () => setIsPlaying(false));
-        audioRef.current.addEventListener('pause', () => setIsPlaying(false));
-        audioRef.current.addEventListener('play', () => setIsPlaying(true));
-    }
+    const audio = new Audio();
+    audioRef.current = audio;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
 
     return () => {
-        if (audioRef.current) {
-            audioRef.current.removeEventListener('ended', () => setIsPlaying(false));
-            audioRef.current.removeEventListener('pause', () => setIsPlaying(false));
-            audioRef.current.removeEventListener('play', () => setIsPlaying(true));
-        }
-    }
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+      audio.pause();
+    };
   }, []);
-
 
   const handleReadAloud = async () => {
     if (!currentQuote.quote || !audioRef.current) return;
@@ -139,8 +137,6 @@ export function QuoteGenerator() {
         setAudioSrc(result.audioDataUri);
         audioRef.current.src = result.audioDataUri;
         audioRef.current.play();
-      } else {
-        setIsReading(false);
       }
     } catch (e) {
       console.error(e);
