@@ -5,23 +5,13 @@ import Image from 'next/image';
 import { generateQuotePack } from '@/ai/flows/generate-quote-pack';
 import { readQuoteAloud } from '@/ai/flows/read-quote-aloud';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
-import { Heart, LoaderCircle, Route, Share2, Sunrise, Droplets, Volume2, VolumeX, Download } from 'lucide-react';
+import { LoaderCircle, Sunrise, Volume2, VolumeX, Download, Share2 } from 'lucide-react';
 import localQuotes from '@/lib/quotes.json';
 
-type Category = 'motivational' | 'love' | 'life' | 'sad';
-
-const categories: { value: Category; label: string; icon: React.ElementType }[] = [
-  { value: 'motivational', label: 'Motivational', icon: Sunrise },
-  { value: 'love', label: 'Love', icon: Heart },
-  { value: 'life', label: 'Life', icon: Route },
-  { value: 'sad', label: 'Sad', icon: Droplets },
-];
+type Category = 'motivational';
 
 const parseQuote = (fullQuote: string): { quote: string; author: string } => {
   const parts = fullQuote.split(' - ');
@@ -46,7 +36,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 export function QuoteGenerator() {
-  const [selectedCategory, setSelectedCategory] = useState<Category>('motivational');
   const [currentQuote, setCurrentQuote] = useState<{ quote: string; author: string }>(parseQuote(localQuotes.quotes.motivational[0]));
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -57,49 +46,33 @@ export function QuoteGenerator() {
   const [audioSrc, setAudioSrc] = useState<string>('');
   const { toast } = useToast();
 
-  const quoteIndices = useRef<Record<Category, number>>({
-    motivational: 0,
-    love: 0,
-    life: 0,
-    sad: 0,
-  });
+  const quoteIndex = useRef<number>(0);
 
-  const shuffledQuotes = useRef<Record<Category, string[]>>({
-    motivational: [],
-    love: [],
-    life: [],
-    sad: [],
-  });
+  const shuffledQuotes = useRef<string[]>([]);
 
   const categoryImages = useMemo(() => {
-    return {
-      motivational: PlaceHolderImages.filter(img => img.id.startsWith('motivational')),
-      love: PlaceHolderImages.filter(img => img.id.startsWith('love')),
-      life: PlaceHolderImages.filter(img => img.id.startsWith('life')),
-      sad: PlaceHolderImages.filter(img => img.id.startsWith('sad')),
-    };
+    return PlaceHolderImages.filter(img => img.id.startsWith('motivational'));
   }, []);
 
-  const selectRandomImage = (category: Category) => {
-    const images = categoryImages[category];
-    if (images.length > 0) {
-      const randomIndex = Math.floor(Math.random() * images.length);
-      setBackgroundImage(images[randomIndex].imageUrl);
+  const selectRandomImage = () => {
+    if (categoryImages.length > 0) {
+      const randomIndex = Math.floor(Math.random() * categoryImages.length);
+      setBackgroundImage(categoryImages[randomIndex].imageUrl);
     }
   };
 
-  const getNextQuote = (category: Category): string => {
-    if (!shuffledQuotes.current[category] || quoteIndices.current[category] >= shuffledQuotes.current[category].length) {
-      shuffledQuotes.current[category] = shuffleArray(localQuotes.quotes[category]);
-      quoteIndices.current[category] = 0;
+  const getNextQuote = (): string => {
+    if (!shuffledQuotes.current || quoteIndex.current >= shuffledQuotes.current.length) {
+      shuffledQuotes.current = shuffleArray(localQuotes.quotes.motivational);
+      quoteIndex.current = 0;
     }
-    const index = quoteIndices.current[category];
-    const quote = shuffledQuotes.current[category][index];
-    quoteIndices.current[category] += 1;
+    const index = quoteIndex.current;
+    const quote = shuffledQuotes.current[index];
+    quoteIndex.current += 1;
     return quote;
   };
 
-  const handleGenerateQuote = (category: Category = selectedCategory) => {
+  const handleGenerateQuote = () => {
     setIsGenerating(true);
     if (audioRef.current) {
       audioRef.current.pause();
@@ -108,30 +81,22 @@ export function QuoteGenerator() {
     setIsPlaying(false);
     setAudioSrc('');
 
-    selectRandomImage(category);
+    selectRandomImage();
     
-    const newQuote = getNextQuote(category);
+    const newQuote = getNextQuote();
     
     setCurrentQuote(parseQuote(newQuote));
     
     setIsGenerating(false);
   };
-
-  const handleCategoryChange = (value: string) => {
-    const newCategory = value as Category;
-    setSelectedCategory(newCategory);
-    handleGenerateQuote(newCategory);
-  };
   
   useEffect(() => {
     // Initialize shuffled quotes on mount
-    (Object.keys(localQuotes.quotes) as Category[]).forEach(category => {
-       shuffledQuotes.current[category] = shuffleArray(localQuotes.quotes[category]);
-    });
+    shuffledQuotes.current = shuffleArray(localQuotes.quotes.motivational);
     // Set initial quote and image
-    const initialQuote = getNextQuote('motivational');
+    const initialQuote = getNextQuote();
     setCurrentQuote(parseQuote(initialQuote));
-    selectRandomImage('motivational');
+    selectRandomImage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -217,36 +182,29 @@ export function QuoteGenerator() {
       doc.setFontSize(24);
       doc.text("Mega Quotes Pack", 105, 20, { align: 'center' });
       doc.setFontSize(12);
-      doc.text("Thousands of inspirational quotes organized by theme.", 105, 30, { align: 'center' });
+      doc.text("Thousands of inspirational quotes.", 105, 30, { align: 'center' });
       
-      let isFirstCategory = true;
+      doc.addPage();
 
-      for (const cat of categories) {
-        if (!isFirstCategory) {
-          doc.addPage();
-        }
-        isFirstCategory = false;
+      let yPos = 20;
 
-        let yPos = 20;
+      doc.setFontSize(18);
+      doc.text(`Motivational Quotes`, 20, yPos);
+      yPos += 15;
+      
+      const result = await generateQuotePack({ category: 'motivational', count: 1000 });
+      doc.setFontSize(10);
 
-        doc.setFontSize(18);
-        doc.text(`${cat.label} Quotes`, 20, yPos);
-        yPos += 15;
-        
-        const result = await generateQuotePack({ category: cat.value, count: 1000 });
-        doc.setFontSize(10);
-
-        result.quotes.forEach((quote, index) => {
-           if (yPos > 280) {
-              doc.addPage();
-              yPos = 20;
-           }
-           const { quote: qText, author } = parseQuote(quote);
-           const wrappedText = doc.splitTextToSize(`${index + 1}. "${qText}" - ${author}`, 170);
-           doc.text(wrappedText, 25, yPos);
-           yPos += (wrappedText.length * 5) + 5;
-        });
-      }
+      result.quotes.forEach((quote, index) => {
+         if (yPos > 280) {
+            doc.addPage();
+            yPos = 20;
+         }
+         const { quote: qText, author } = parseQuote(quote);
+         const wrappedText = doc.splitTextToSize(`${index + 1}. "${qText}" - ${author}`, 170);
+         doc.text(wrappedText, 25, yPos);
+         yPos += (wrappedText.length * 5) + 5;
+      });
 
       doc.save("Mega_Quotes_Pack.pdf");
 
@@ -293,38 +251,18 @@ export function QuoteGenerator() {
             </blockquote>
           )}
         </div>
-
-        <div>
-          <RadioGroup
-            value={selectedCategory}
-            onValueChange={handleCategoryChange}
-            className="grid grid-cols-4 gap-2"
-            disabled={isGenerating || isDownloading}
-          >
-            {categories.map(({ value, label, icon: Icon }) => (
-              <div key={value}>
-                <RadioGroupItem value={value} id={value} className="sr-only" />
-                <Label
-                  htmlFor={value}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-2 rounded-lg p-2 border-2 border-transparent cursor-pointer transition-all',
-                    'bg-white/10 backdrop-blur-sm',
-                    'hover:bg-white/20',
-                    selectedCategory === value && 'border-white/80 bg-white/25',
-                    'data-[disabled]:opacity-50 data-[disabled]:pointer-events-none'
-                  )}
-                >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs font-semibold">{label}</span>
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
+        
+        <div className="flex items-center justify-center p-2 mb-2">
+            <div className="flex flex-col items-center justify-center gap-2 rounded-lg p-2 border-2 border-white/80 bg-white/25">
+                <Sunrise className="h-8 w-8 text-white" />
+                <span className="text-sm font-semibold text-white">Motivational</span>
+            </div>
         </div>
+
 
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => handleGenerateQuote()}
+            onClick={handleGenerateQuote}
             className="flex-grow h-14 text-lg font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg transform hover:scale-105 transition-transform"
             disabled={isGenerating || isDownloading}
           >
